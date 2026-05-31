@@ -193,7 +193,7 @@
             pointer-events: none;
             z-index: 2000;
             font-size: 24px;
-            animation: popcorn-fall 1s ease-out forwards;
+            animation: popcorn-fall 8s ease-out forwards;
         }
 
         @keyframes popcorn-fall {
@@ -201,11 +201,11 @@
                 transform: translate(0, 0) rotate(0deg) scale(0);
                 opacity: 1;
             }
-            20% {
+            10% {
                 transform: translate(var(--dx), var(--dy)) rotate(var(--dr)) scale(1.2);
             }
             100% {
-                transform: translate(calc(var(--dx) * 1.2), 100vh) rotate(calc(var(--dr) * 2)) scale(0.5);
+                transform: translate(calc(var(--dx) * 1.5), 110vh) rotate(calc(var(--dr) * 4)) scale(0.5);
                 opacity: 0;
             }
         }
@@ -328,10 +328,10 @@
             
             document.body.appendChild(particle);
             
-            // 애니메이션 종료 후 제거
+            // 애니메이션 종료 후 제거 (8초 유지)
             setTimeout(() => {
                 particle.remove();
-            }, 1000);
+            }, 8000);
         }
     }
 
