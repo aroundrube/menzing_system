@@ -151,6 +151,45 @@
             font-size: 12px;
         }
         .reset-btn:hover { color: #666; }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .clickable {
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .clickable:active {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 <body>
@@ -163,8 +202,8 @@
             <div>총 손절 금액</div>
             <div class="stat-val text-loss" id="display-loss">0원</div>
         </div>
-        <div class="stat-box total-recovery">
-            <div>총 복구 금액</div>
+        <div class="stat-box total-recovery clickable" onclick="showRecoveryDetails()">
+            <div>총 복구 금액 🔍</div>
             <div class="stat-val text-recovery" id="display-recovery">0원</div>
         </div>
         <div class="stat-box remaining">
@@ -182,7 +221,7 @@
     <div class="card">
         <div class="form-group">
             <label for="loss-input">📉 새로운 손절 금액 입력</label>
-            <input type="number" id="loss-input" placeholder="예: 500000 (숫자만 입력)">
+            <input type="text" id="loss-input" placeholder="예: 500,000" oninput="formatInput(this)">
         </div>
         <button class="btn-loss" onclick="addLoss()">손절 금액 추가</button>
     </div>
@@ -190,7 +229,7 @@
     <div class="card">
         <div class="form-group">
             <label for="recovery-input">📈 이번에 복구한 금액 입력</label>
-            <input type="number" id="recovery-input" placeholder="예: 150000 (숫자만 입력)">
+            <input type="text" id="recovery-input" placeholder="예: 150,000" oninput="formatInput(this)">
         </div>
         <div class="form-group">
             <label for="recovery-memo">📝 복구 메모 (선택)</label>
@@ -208,6 +247,17 @@
     </div>
 </div>
 
+<!-- 복구 내역 모달 -->
+<div id="recoveryModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h3 style="margin-top: 0;">📈 복구 상세 내역</h3>
+        <div id="modal-list" style="max-height: 300px; overflow-y: auto;">
+            <!-- 상세 내역이 여기에 들어감 -->
+        </div>
+    </div>
+</div>
+
 <script>
     // 변수 초기화 (새로고침해도 유지되도록 LocalStorage 활용)
     let totalLoss = parseInt(localStorage.getItem('totalLoss')) || 0;
@@ -217,6 +267,21 @@
     // 숫자 세자리마다 콤마 찍기 함수
     function formatNumber(num) {
         return num.toLocaleString('ko-KR') + '원';
+    }
+
+    // 입력창 실시간 콤마 포맷 함수
+    function formatInput(el) {
+        let value = el.value.replace(/[^0-9]/g, '');
+        if (value) {
+            el.value = parseInt(value).toLocaleString('ko-KR');
+        } else {
+            el.value = '';
+        }
+    }
+
+    // 콤마 제거 후 숫자로 변환
+    function parseFormattedNumber(str) {
+        return parseInt(str.replace(/,/g, '')) || 0;
     }
 
     // 화면 갱신 함수
@@ -298,9 +363,9 @@
     // 손절 추가
     function addLoss() {
         const input = document.getElementById('loss-input');
-        const amount = parseInt(input.value);
+        const amount = parseFormattedNumber(input.value);
 
-        if (isNaN(amount) || amount <= 0) {
+        if (amount <= 0) {
             alert('올바른 손절 금액을 입력해주세요.');
             return;
         }
@@ -321,10 +386,10 @@
     function addRecovery() {
         const input = document.getElementById('recovery-input');
         const memoInput = document.getElementById('recovery-memo');
-        const amount = parseInt(input.value);
+        const amount = parseFormattedNumber(input.value);
         const memo = memoInput.value.trim();
 
-        if (isNaN(amount) || amount <= 0) {
+        if (amount <= 0) {
             alert('올바른 복구 금액을 입력해주세요.');
             return;
         }
@@ -349,6 +414,47 @@
             totalRecovery = 0;
             historyData = [];
             updateUI();
+        }
+    }
+
+    // 복구 상세 모달 열기
+    function showRecoveryDetails() {
+        const modal = document.getElementById('recoveryModal');
+        const listContainer = document.getElementById('modal-list');
+        listContainer.innerHTML = '';
+
+        const recoveries = historyData.filter(item => item.type === 'recovery');
+
+        if (recoveries.length === 0) {
+            listContainer.innerHTML = '<p style="text-align:center; color:#999;">복구 내역이 없습니다.</p>';
+        } else {
+            recoveries.forEach(item => {
+                const div = document.createElement('div');
+                div.style.padding = '10px 0';
+                div.style.borderBottom = '1px solid #eee';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:12px; color:#888;">${item.date}</span>
+                        <span class="text-recovery">+${formatNumber(item.amount)}</span>
+                    </div>
+                    <div style="font-size:14px; margin-top:4px;">${item.memo}</div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+        modal.style.display = "block";
+    }
+
+    // 모달 닫기
+    function closeModal() {
+        document.getElementById('recoveryModal').style.display = "none";
+    }
+
+    // 모달 바깥 클릭 시 닫기
+    window.onclick = function(event) {
+        const modal = document.getElementById('recoveryModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
         }
     }
 
