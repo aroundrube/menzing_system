@@ -183,12 +183,31 @@
             color: #aaa;
         }
 
-        .clickable {
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
         .clickable:active {
             transform: scale(0.98);
+        }
+
+        /* 돈다발 팝콘 효과를 위한 스타일 */
+        .money-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 2000;
+            font-size: 24px;
+            animation: popcorn-fall 1s ease-out forwards;
+        }
+
+        @keyframes popcorn-fall {
+            0% {
+                transform: translate(0, 0) rotate(0deg) scale(0);
+                opacity: 1;
+            }
+            20% {
+                transform: translate(var(--dx), var(--dy)) rotate(var(--dr)) scale(1.2);
+            }
+            100% {
+                transform: translate(calc(var(--dx) * 1.2), 100vh) rotate(calc(var(--dr) * 2)) scale(0.5);
+                opacity: 0;
+            }
         }
     </style>
 </head>
@@ -282,6 +301,38 @@
     // 콤마 제거 후 숫자로 변환
     function parseFormattedNumber(str) {
         return parseInt(str.replace(/,/g, '')) || 0;
+    }
+
+    // 돈다발 팝콘 효과 함수
+    function shootMoney() {
+        const emojis = ['💸', '💰', '💵', '🤑', '💎'];
+        const particleCount = 20;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'money-particle';
+            particle.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+            
+            // 시작 위치 (화면 하단 중앙)
+            particle.style.left = '50%';
+            particle.style.bottom = '20%';
+            
+            // 랜덤한 이동 경로 설정
+            const dx = (Math.random() - 0.5) * 400; // 좌우 확산
+            const dy = - (Math.random() * 400 + 200); // 위로 튀어오름
+            const dr = (Math.random() - 0.5) * 720; // 회전
+            
+            particle.style.setProperty('--dx', `${dx}px`);
+            particle.style.setProperty('--dy', `${dy}px`);
+            particle.style.setProperty('--dr', `${dr}deg`);
+            
+            document.body.appendChild(particle);
+            
+            // 애니메이션 종료 후 제거
+            setTimeout(() => {
+                particle.remove();
+            }, 1000);
+        }
     }
 
     // 화면 갱신 함수
@@ -393,6 +444,9 @@
             alert('올바른 복구 금액을 입력해주세요.');
             return;
         }
+
+        // 돈다발 효과 실행
+        shootMoney();
 
         totalRecovery += amount;
         historyData.unshift({
