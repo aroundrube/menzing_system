@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>멘징 관리 시스템 (Mending Manager)</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --loss-color: #d9534f;
+            --profit-color: #5cb85c;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-loss { background-color: var(--loss-color); color: white; }
+        .btn-loss:hover { background-color: #c9302c; }
+        .btn-recovery { background-color: var(--profit-color); color: white; }
+        .btn-recovery:hover { background-color: #4cae4c; }
+
+        /* 대시보드 스타일 */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .stat-box.total-loss { border-top: 4px solid var(--loss-color); }
+        .stat-box.total-recovery { border-top: 4px solid var(--profit-color); }
+        .stat-box.remaining { 
+            grid-column: span 2; 
+            border-top: 4px solid var(--primary-color);
+        }
+
+        .stat-val {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* 프로그레스 바 */
+        .progress-container {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            width: 100%;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #5cb85c, #4a90e2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* 히스토리 로그 */
+        .history-list {
+            list-style: none;
+            padding: 0;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 5px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .text-loss { color: var(--loss-color); font-weight: bold; }
+        .text-recovery { color: var(--profit-color); font-weight: bold; }
+        
+        .reset-btn {
+            background: none;
+            border: none;
+            color: #999;
+            text-decoration: underline;
+            cursor: pointer;
+            float: right;
+            font-size: 12px;
+        }
+        .reset-btn:hover { color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎯 멘징 관리 시스템</h1>
+
+    <div class="dashboard">
+        <div class="stat-box total-loss">
+            <div>총 손절 금액</div>
+            <div class="stat-val text-loss" id="display-loss">0원</div>
+        </div>
+        <div class="stat-box total-recovery">
+            <div>총 복구 금액</div>
+            <div class="stat-val text-recovery" id="display-recovery">0원</div>
+        </div>
+        <div class="stat-box remaining">
+            <div>남은 손실 (멘징 필요한 금액)</div>
+            <div class="stat-val" id="display-remaining">0원</div>
+            <div style="margin-top: 10px; font-size: 13px; color:#666;">
+                복구율: <span id="display-percent">0</span>%
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="form-group">
+            <label for="loss-input">📉 새로운 손절 금액 입력</label>
+            <input type="number" id="loss-input" placeholder="예: 500000 (숫자만 입력)">
+        </div>
+        <button class="btn-loss" onclick="addLoss()">손절 금액 추가</button>
+    </div>
+
+    <div class="card">
+        <div class="form-group">
+            <label for="recovery-input">📈 이번에 복구한 금액 입력</label>
+            <input type="number" id="recovery-input" placeholder="예: 150000 (숫자만 입력)">
+        </div>
+        <div class="form-group">
+            <label for="recovery-memo">📝 복구 메모 (선택)</label>
+            <input type="text" id="recovery-memo" placeholder="예: 삼성전자 익절, 뇌동매매 금지">
+        </div>
+        <button class="btn-recovery" onclick="addRecovery()">복구 금액 추가</button>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0;">🕒 히스토리 내역 
+            <button class="reset-btn" onclick="resetAll()">전체 초기화</button>
+        </h3>
+        <ul class="history-list" id="history-log">
+            </ul>
+    </div>
+</div>
+
+<script>
+    // 변수 초기화 (새로고침해도 유지되도록 LocalStorage 활용)
+    let totalLoss = parseInt(localStorage.getItem('totalLoss')) || 0;
+    let totalRecovery = parseInt(localStorage.getItem('totalRecovery')) || 0;
+    let historyData = JSON.parse(localStorage.getItem('historyData')) || [];
+
+    // 숫자 세자리마다 콤마 찍기 함수
+    function formatNumber(num) {
+        return num.toLocaleString('ko-KR') + '원';
+    }
+
+    // 화면 갱신 함수
+    function updateUI() {
+        const remaining = totalLoss - totalRecovery;
+        
+        // 데이터 대입
+        document.getElementById('display-loss').innerText = formatNumber(totalLoss);
+        document.getElementById('display-recovery').innerText = formatNumber(totalRecovery);
+        
+        const remainingEl = document.getElementById('display-remaining');
+        if (remaining <= 0 && totalLoss > 0) {
+            remainingEl.innerText = "🎉 멘징 완료! 익절 구간입니다.";
+            remainingEl.style.color = "#5cb85c";
+        } else {
+            remainingEl.innerText = formatNumber(Math.max(0, remaining));
+            remainingEl.style.color = "#333";
+        }
+
+        // 퍼센트 및 프로그레스 바 계산
+        let percent = 0;
+        if (totalLoss > 0) {
+            percent = (totalRecovery / totalLoss) * 100;
+            if (percent > 100) percent = 100; // 100% 초과 방지
+        }
+        document.getElementById('display-percent').innerText = percent.toFixed(1);
+        document.getElementById('progress-bar').style.width = percent + '%';
+
+        // 히스토리 로그 그리기
+        const historyLog = document.getElementById('history-log');
+        historyLog.innerHTML = '';
+        
+        if(historyData.length === 0) {
+            historyLog.innerHTML = '<li style="text-align:center; color:#999; padding:20px 0;">등록된 내역이 없습니다.</li>';
+        }
+
+        historyData.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            
+            const timeSpan = document.createElement('span');
+            timeSpan.style.color = '#888';
+            timeSpan.innerText = item.date;
+
+            const memoSpan = document.createElement('span');
+            memoSpan.innerText = item.memo ? ` (${item.memo})` : '';
+            memoSpan.style.color = '#666';
+
+            const typeSpan = document.createElement('span');
+            if (item.type === 'loss') {
+                typeSpan.className = 'text-loss';
+                typeSpan.innerText = `-${formatNumber(item.amount)}`;
+            } else {
+                typeSpan.className = 'text-recovery';
+                typeSpan.innerText = `+${formatNumber(item.amount)}`;
+            }
+
+            const leftDiv = document.createElement('div');
+            leftDiv.appendChild(timeSpan);
+            leftDiv.appendChild(memoSpan);
+
+            li.appendChild(leftDiv);
+            li.appendChild(typeSpan);
+            historyLog.appendChild(li);
+        });
+
+        // 로컬 스토리지 저장
+        localStorage.setItem('totalLoss', totalLoss);
+        localStorage.setItem('totalRecovery', totalRecovery);
+        localStorage.setItem('historyData', JSON.stringify(historyData));
+    }
+
+    // 날짜 포맷 함수
+    function getNowDate() {
+        const now = new Date();
+        return `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }
+
+    // 손절 추가
+    function addLoss() {
+        const input = document.getElementById('loss-input');
+        const amount = parseInt(input.value);
+
+        if (isNaN(amount) || amount <= 0) {
+            alert('올바른 손절 금액을 입력해주세요.');
+            return;
+        }
+
+        totalLoss += amount;
+        historyData.unshift({
+            date: getNowDate(),
+            type: 'loss',
+            amount: amount,
+            memo: '손절 기록'
+        });
+
+        input.value = '';
+        updateUI();
+    }
+
+    // 복구 추가
+    function addRecovery() {
+        const input = document.getElementById('recovery-input');
+        const memoInput = document.getElementById('recovery-memo');
+        const amount = parseInt(input.value);
+        const memo = memoInput.value.trim();
+
+        if (isNaN(amount) || amount <= 0) {
+            alert('올바른 복구 금액을 입력해주세요.');
+            return;
+        }
+
+        totalRecovery += amount;
+        historyData.unshift({
+            date: getNowDate(),
+            type: 'recovery',
+            amount: amount,
+            memo: memo || '복구 기록'
+        });
+
+        input.value = '';
+        memoInput.value = '';
+        updateUI();
+    }
+
+    // 전체 초기화
+    function resetAll() {
+        if (confirm('정말로 모든 내역을 삭제하고 초기화하시겠습니까?')) {
+            totalLoss = 0;
+            totalRecovery = 0;
+            historyData = [];
+            updateUI();
+        }
+    }
+
+    // 초기 화면 로드
+    updateUI();
+</script>
+
+</body>
+</html>
